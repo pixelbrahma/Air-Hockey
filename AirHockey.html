@@ -1,0 +1,166 @@
+<html>
+<canvas id="gameCanvas" width="800" height="600"></canvas>  
+<h1> <b> AIR HOCKEY 				BY NIKHIL BHARADWAJ </b></h1>
+<script>
+var canvas;  //canvas element
+var canvasContext;   // graphical information regarding the context
+var ballX = 0;   // position of ball x coordinate
+var ballY = 0;   // position of ball y coordinate
+var ballSpeedX = 10;  // change in position of ball per interval or speed in x direction
+var ballSpeedY = 4;   // change in position of ball per interval or speed in y direction
+var playerScore = 0;  
+var computerScore = 0;
+const WINNING_SCORE = 3;
+var paddle1Y = 250;
+var paddle2Y = 250;
+const PADDLE_HEIGHT = 100;
+const PADDLE_THICKNESS = 10;
+var win = false;
+
+function calculateMousePos(evt) {                                            //event to input mouse position
+var rect = canvas.getBoundingClientRect();                // to account for the position on the canvas within the window
+var root = document.documentElement;             //to account for how far down the page we have scrolled 
+var mouseX = evt.clientX - rect.left - root.scrollLeft;   // these two commands give the corresponding position of the mouse inside the playing area
+var mouseY = evt.clientY - rect.top - root.scrollTop;
+return {
+x:mouseX,               // returns the position of the mouse
+y:mouseY
+};
+}
+
+window.onload = function() {            //  signifies to the browser to load the function under it once the program is done loading
+canvas = document.getElementById('gameCanvas');  //calls the HTML canvas element by ID
+canvasContext = canvas.getContext('2d');    // dignifies the dimensional nature of the graphics
+var fps = 30;        //  frames per second
+setInterval(function() {     //  this executes the function after each interval of the time period mentioned in the function
+move();
+draw();
+}, 1000/fps);
+canvas.addEventListener('mousedown', function(evt)    //  watches for the event of mouse click 
+{
+playerScore = 0;
+computerScore = 0;
+win = false;
+});
+canvas.addEventListener('mousemove',function(evt)     //  watches for the event of mouse movement
+{
+var mousePos = calculateMousePos(evt);
+paddle1Y = mousePos.y-(PADDLE_HEIGHT/2);             //  alignment of the y coordinate of the mouse position to the center of the player paddle
+});
+}
+
+function ballReset()            //  function to reset the position of the ball
+{      
+if(playerScore >= WINNING_SCORE || computerScore >= WINNING_SCORE)   //  checking winning condition
+{
+win = true;
+}
+ballSpeedX = -ballSpeedX;
+ballSpeedY = 4;
+ballX = canvas.width/2;
+ballY = canvas.height/2;
+}
+
+function computer()      //  function for the AI logic of the computer playing by itself
+{
+var paddle2YCenter = paddle2Y + (PADDLE_HEIGHT/2);
+if (paddle2YCenter < ballY-35)         //  this if else statement construct checks whether the ball is below or above the paddle and moves the paddle - 
+{                                       //  - towards it accordingly
+paddle2Y += 6;
+} 
+else if(paddle2YCenter > ballY+35) 
+{
+paddle2Y -= 6;
+}
+}
+
+function move()   // this function moves the whole game and decides the boundary conditions for the ball and evaluates the score 
+{
+if(win)        //  this condition stops the game upon winning
+{
+return;
+}
+computer();   // calls the AI function to move accordingly
+ballX += ballSpeedX;   // movement of the ball along the x axis
+ballY += ballSpeedY;    //  movement of the ball along the y axis
+if(ballX < 0)   //  checking for the ball to go outside the left edge of the canvas
+{
+if(ballY > paddle1Y && ballY < paddle1Y+PADDLE_HEIGHT)   // checking if the ball hits the left edge within the player paddle boundaries
+{  
+ballSpeedX = -ballSpeedX;      //  ball rebounding
+var deltaY = ballY - (paddle1Y+PADDLE_HEIGHT/2);  // calculation of the acceleration of the ball depending on the distance of the ball - 
+ballSpeedY = deltaY * 0.30;  // - from the center of the player paddle
+} 
+else 
+{
+computerScore++;
+ballReset();
+}
+}
+if(ballX > canvas.width)    //  checking for the ball to go outside the right edge of the canvas
+{
+if(ballY > paddle2Y && ballY < paddle2Y+PADDLE_HEIGHT)   // checking for the ball hitting the computer paddle
+{
+ballSpeedX = -ballSpeedX;  //  ball rebound
+var deltaY = ballY - (paddle2Y+PADDLE_HEIGHT/2);  // acceleration of the ball from the AI paddle
+ballSpeedY = deltaY * 0.30;
+} 
+else 
+{
+playerScore++;
+ballReset();
+}
+}
+if(ballY < 0)   //  checking for the ball hitting the top edge of the canvas
+{
+ballSpeedY = -ballSpeedY;  // rebound
+}
+if(ballY > canvas.height)  //  checking for the ball hitting the bottom egde
+{
+ballSpeedY = -ballSpeedY; // rebound
+}
+}
+
+function draw()   // this function draws all the graphics of the game in each instance
+{
+colorRect(0, 0, canvas.width, canvas.height, 'black');   // calls the defined rectangle draw function to draw the canvas
+if(win)  // this condition stops the drawing if one of the sides wins
+{
+canvasContext.fillStyle = 'white';
+if(playerScore >= WINNING_SCORE)   // condition to determine and output who won the game
+{
+canvasContext.fillText("YOU WON",350,200);
+}
+else if(computerScore >= WINNING_SCORE)
+{
+canvasContext.fillText("COMPUTER WON",350,200);
+}
+canvasContext.fillText("CLICK TO PLAY AGAIN",350,400);  // restart parameter to prompt the user click to start a new game
+return;
+}
+for(var i =0;i <= canvas.height;i+=40)  // this loop is used to draw the net
+{
+colorRect(canvas.width/2 -1 , i, 5, 20, 'white');
+}
+colorRect(0, paddle1Y, PADDLE_THICKNESS, PADDLE_HEIGHT, 'white');  //  player paddle 
+colorRect(canvas.width-PADDLE_THICKNESS, paddle2Y, PADDLE_THICKNESS, PADDLE_HEIGHT, 'white');  // computer paddle
+colorCircle(ballX, ballY, 10, 'white');  // calls the function to draw a circle
+canvasContext.fillText(playerScore, 100, 100);  // displays player score
+canvasContext.fillText(computerScore, canvas.width-100, 100);  // displays computer score
+}
+
+function colorCircle(centerX, centerY, radius, drawColor)  // function to draw a cirlce from the given parameters
+{
+canvasContext.fillStyle = drawColor;
+canvasContext.beginPath();
+canvasContext.arc(centerX, centerY, radius, 0, Math.PI*2, true);
+canvasContext.fill();
+}
+
+function colorRect(leftX, topY, width, height, drawColor)   // function to draws a rectangle from the given parameters
+{
+canvasContext.fillStyle = drawColor;
+canvasContext.fillRect(leftX, topY, width, height);
+}
+</script>  
+</html>
